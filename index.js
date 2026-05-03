@@ -103,7 +103,13 @@ app.post('/send', async (req, res) => {
         // WhatsApp expects numbers strictly without '+' and with '@c.us' appended
         // Format input: "+228 90 00 00 00" or "22890000000"
         let formattedPhone = phone.replace(/[^0-9]/g, ''); 
-        chatId = `${formattedPhone}@c.us`;
+
+        // Automatically append Benin country code if it's a local 8-digit number
+        if (formattedPhone.length === 8) {
+            formattedPhone = '229' + formattedPhone;
+        }
+
+        let chatId = `${formattedPhone}@c.us`;
 
         // Bypass isRegisteredUser check to avoid puppeteer timeouts on slow servers
         /*
