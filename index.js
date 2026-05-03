@@ -11,7 +11,7 @@ const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
         headless: true,
-        executablePath: '/usr/bin/google-chrome', // Pointe vers le Chrome installé dans le Dockerfile
+        executablePath: '/usr/bin/chromium', // Pointe vers Chromium installé dans le Dockerfile
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox',
