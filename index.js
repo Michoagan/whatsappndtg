@@ -26,11 +26,12 @@ const client = new Client({
 });
 
 let isClientReady = false;
+let currentQR = "";
 
 client.on('qr', (qr) => {
-    // Generate and scan this code with your phone
-    console.log('🔴 SCAN THIS QR CODE WITH YOUR WHATSAPP (LINKED DEVICES) 🔴');
-    qrcode.generate(qr, { small: true });
+    currentQR = qr; // Sauvegarder le QR code
+    console.log('🔴 QR Code généré ! Allez sur http://votre-site/qr pour le scanner facilement.');
+    // qrcode.generate(qr, { small: true }); // Désactivé car illisible dans les logs
 });
 
 client.on('ready', () => {
@@ -44,6 +45,47 @@ client.on('disconnected', (reason) => {
 });
 
 client.initialize();
+
+// Route pour afficher le QR Code proprement dans le navigateur
+app.get('/qr', (req, res) => {
+    if (isClientReady) {
+        return res.send("<h1>Le Bot WhatsApp est déjà connecté ! ✅</h1>");
+    }
+    
+    if (!currentQR) {
+        return res.send("<h1>Le QR Code n'est pas encore généré, patientez quelques secondes et rafraîchissez la page... ⏳</h1>");
+    }
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Connexion WhatsApp Bot</title>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+        <style>
+            body { display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f0f0f0; flex-direction: column; font-family: sans-serif; }
+            #qrcode { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-top: 20px; }
+            h1 { color: #333; }
+        </style>
+    </head>
+    <body>
+        <h1>Scannez ce QR Code avec WhatsApp</h1>
+        <p>Allez dans WhatsApp > Appareils liés > Connecter un appareil</p>
+        <div id="qrcode"></div>
+        <script>
+            new QRCode(document.getElementById("qrcode"), {
+                text: "${currentQR}",
+                width: 300,
+                height: 300
+            });
+            // Rafraîchir automatiquement toutes les 15 secondes
+            setTimeout(() => { location.reload(); }, 15000);
+        </script>
+    </body>
+    </html>
+    `;
+    res.send(html);
+});
 
 // Express Endpoint to send messages
 app.post('/send', async (req, res) => {
