@@ -10,7 +10,18 @@ app.use(express.json());
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Good for running on servers
+        headless: true,
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu'
+        ],
+        protocolTimeout: 0 // Prevents the Runtime.callFunctionOn timeout error
     }
 });
 
@@ -52,11 +63,13 @@ app.post('/send', async (req, res) => {
         let formattedPhone = phone.replace(/[^0-9]/g, ''); 
         chatId = `${formattedPhone}@c.us`;
 
-        // Check if the number is registered on WhatsApp (optional but safe)
+        // Bypass isRegisteredUser check to avoid puppeteer timeouts on slow servers
+        /*
         const isRegistered = await client.isRegisteredUser(chatId);
         if (!isRegistered) {
             return res.status(404).json({ success: false, error: "This phone number is not registered on WhatsApp." });
         }
+        */
 
         // Send the message
         await client.sendMessage(chatId, message);
