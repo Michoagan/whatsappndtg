@@ -10,7 +10,7 @@ app.use(express.json());
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        executablePath: '/usr/bin/google-chrome-stable',
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN || undefined,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -129,7 +129,7 @@ app.post('/send', async (req, res) => {
         // WhatsApp expects numbers strictly without '+' and with '@c.us' appended
         // Format input: "+229 90 00 00 00" or "22990000000"
         let formattedPhone = phone.replace(/[^0-9]/g, '');
-        
+
         // Auto-append Benin country code '229' depending on the format
         if (formattedPhone.length === 10) {
             // Nouveau format à 10 chiffres (ex: 01 97 00 00 00)
