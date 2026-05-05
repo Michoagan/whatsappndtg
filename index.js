@@ -151,6 +151,11 @@ app.post('/send', async (req, res) => {
 
         } catch (error) {
             console.error("🚨 Error sending message:", error.message);
+            // Si le navigateur a crashé, on force le redémarrage du conteneur Railway
+            if (error.message.includes('Target closed') || error.message.includes('Session closed')) {
+                console.error("Browser crashed! Exiting process to trigger automatic restart...");
+                setTimeout(() => process.exit(1), 1000);
+            }
             resolve({ success: false, error: error.toString() });
         }
     });
