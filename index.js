@@ -144,10 +144,29 @@ app.post('/send', async (req, res) => {
             const chatId = `${formattedPhone}@c.us`;
             console.log(`📤 Envoi vers: ${chatId}`);
 
-            // Envoyer directement sans vérifier isRegisteredUser (évite les blocages)
-            await client.sendMessage(chatId, message);
-            console.log(`✅ Message envoyé à ${formattedPhone}`);
-            resolve({ success: true, message: "WhatsApp message sent successfully." });
+            try {
+                // Envoyer directement sans vérifier isRegisteredUser (évite les blocages)
+                await client.sendMessage(chatId, message);
+                console.log(`✅ Message envoyé à ${formattedPhone}`);
+                resolve({ success: true, message: "WhatsApp message sent successfully." });
+            } catch (err) {
+                if (err.message && err.message.includes('No LID for user') && formattedPhone.startsWith('22901')) {
+                    const fallbackPhone = formattedPhone.replace('22901', '229');
+                    const fallbackChatId = `${fallbackPhone}@c.us`;
+                    console.log(`🔄 Numéro non trouvé (No LID). Tentative de repli vers l'ancien format (8 chiffres) : ${fallbackChatId}`);
+                    try {
+                        await client.sendMessage(fallbackChatId, message);
+                        console.log(`✅ Message envoyé avec succès au format de repli ${fallbackPhone}`);
+                        resolve({ success: true, message: "WhatsApp message sent successfully on fallback." });
+                        return;
+                    } catch (fallbackErr) {
+                        // Si le fallback échoue aussi, on lance l'erreur vers le catch global
+                        throw fallbackErr;
+                    }
+                }
+                // Lancer l'erreur originale si pas gérée
+                throw err;
+            }
 
         } catch (error) {
             console.error("🚨 Error sending message:", error.message);
