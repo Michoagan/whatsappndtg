@@ -144,18 +144,25 @@ app.post('/send', async (req, res) => {
             const chatId = `${formattedPhone}@c.us`;
             console.log(`📤 Envoi vers: ${chatId}`);
 
+            const sendMessageWithTimeout = (targetChatId, msg, timeoutMs = 5000) => {
+                return Promise.race([
+                    client.sendMessage(targetChatId, msg),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('SendMessageTimeout')), timeoutMs))
+                ]);
+            };
+
             try {
-                // Envoyer directement sans vérifier isRegisteredUser (évite les blocages)
-                await client.sendMessage(chatId, message);
+                // Envoyer avec un timeout pour éviter les blocages si le numéro n'est pas enregistré
+                await sendMessageWithTimeout(chatId, message);
                 console.log(`✅ Message envoyé à ${formattedPhone}`);
                 resolve({ success: true, message: "WhatsApp message sent successfully." });
             } catch (err) {
-                if (err.message && err.message.includes('No LID for user') && formattedPhone.startsWith('22901')) {
+                if ((err.message === 'SendMessageTimeout' || (err.message && err.message.includes('No LID for user'))) && formattedPhone.startsWith('22901')) {
                     const fallbackPhone = formattedPhone.replace('22901', '229');
                     const fallbackChatId = `${fallbackPhone}@c.us`;
-                    console.log(`🔄 Numéro non trouvé (No LID). Tentative de repli vers l'ancien format (8 chiffres) : ${fallbackChatId}`);
+                    console.log(`🔄 Numéro non trouvé ou timeout. Tentative de repli vers l'ancien format (8 chiffres) : ${fallbackChatId}`);
                     try {
-                        await client.sendMessage(fallbackChatId, message);
+                        await sendMessageWithTimeout(fallbackChatId, message);
                         console.log(`✅ Message envoyé avec succès au format de repli ${fallbackPhone}`);
                         resolve({ success: true, message: "WhatsApp message sent successfully on fallback." });
                         return;
